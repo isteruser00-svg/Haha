@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gece</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  background:#000;
+  overflow:hidden;
+  height:100vh;
+}
+
+canvas{
+  position:fixed;
+  inset:0;
+}
+
+.text{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  color:white;
+  font-family:Arial,sans-serif;
+  font-size:15px;
+  letter-spacing:4px;
+  opacity:0;
+  transition:1s;
+  text-shadow:0 0 15px white;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="text" id="text">
+  ✨
+</div>
+
+<script>
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+let W,H;
+
+function resize(){
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight;
+}
+
+resize();
+window.addEventListener("resize",resize);
+
+
+/* PARÇACIKLAR */
+
+let particles=[];
+
+for(let i=0;i<900;i++){
+
+  particles.push({
+    x:Math.random()*W,
+    y:Math.random()*H,
+
+    oldX:0,
+    oldY:0,
+
+    targetX:0,
+    targetY:0,
+
+    size:Math.random()*2+0.5,
+
+    hue:Math.random()*360,
+
+    speed:0.025+Math.random()*0.035
+  });
+
+}
+
+
+/* YAZIYI CANVAS'A ÇİZ */
+
+const temp=document.createElement("canvas");
+const tctx=temp.getContext("2d");
+
+function createTextTargets(){
+
+  temp.width=W;
+  temp.height=H;
+
+  tctx.clearRect(0,0,W,H);
+
+  let fontSize=Math.min(W*0.25,150);
+
+  tctx.font=
+    "bold "+fontSize+"px Arial";
+
+  tctx.textAlign="center";
+  tctx.textBaseline="middle";
+
+  tctx.fillStyle="white";
+
+  tctx.fillText(
+    "gece",
+    W/2,
+    H/2
+  );
+
+  const data=tctx.getImageData(
+    0,
+    0,
+    W,
+    H
+  ).data;
+
+  let points=[];
+
+  for(let y=0;y<H;y+=4){
+
+    for(let x=0;x<W;x+=4){
+
+      const index=(y*W+x)*4;
+
+      if(data[index+3]>150){
+
+        points.push({
+          x:x,
+          y:y
+        });
+
+      }
+
+    }
+
+  }
+
+  /* Parçacıkları yazıya dağıt */
+
+  particles.forEach((p,i)=>{
+
+    let point=
+      points[i%points.length];
+
+    p.targetX=point.x;
+    p.targetY=point.y;
+
+  });
+
+}
+
+createTextTargets();
+
+window.addEventListener("resize",createTextTargets);
+
+
+/* ANİMASYON */
+
+let start=Date.now();
+
+function animate(){
+
+  ctx.fillStyle="rgba(0,0,0,0.18)";
+  ctx.fillRect(0,0,W,H);
+
+  let elapsed=Date.now()-start;
+
+  particles.forEach((p,i)=>{
+
+    /* İlk 3 saniye dağınık */
+
+    if(elapsed<3000){
+
+      p.x+=Math.cos(i)*0.5;
+      p.y+=Math.sin(i)*0.5;
+
+    }
+
+    /* Sonra GECE yazısına git */
+
+    else{
+
+      p.x+=(p.targetX-p.x)*p.speed;
+      p.y+=(p.targetY-p.y)*p.speed;
+
+    }
+
+    let hue=
+      (p.hue+elapsed*0.03)%360;
+
+    ctx.beginPath();
+
+    ctx.fillStyle=
+      "hsla("+hue+",100%,65%,0.9)";
+
+    ctx.shadowBlur=10;
+
+    ctx.shadowColor=
+      "hsl("+hue+",100%,60%)";
+
+    ctx.arc(
+      p.x,
+      p.y,
+      p.size,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+
+  });
+
+  ctx.shadowBlur=0;
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+</script>
+
+</body>
+</html>
